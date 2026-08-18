@@ -7,18 +7,44 @@
 }
 
 html {
-  background: #0b1220;
+  background: #0d0a1f;
 }
 
 body {
   color: #e8eef7;
   -webkit-font-smoothing: antialiased;
-  /* seamless dark canvas: teal glow up top, deep navy below */
+  /* seamless dark canvas, FPL-tuned: indigo glow up top with a faint
+     cyan-green accent, melting into a deep purple-navy below */
   background:
-    radial-gradient(120% 60% at 50% -10%, rgba(45, 212, 191, 0.16), transparent 60%),
-    radial-gradient(90% 50% at 100% 0%, rgba(52, 211, 153, 0.08), transparent 55%),
-    linear-gradient(180deg, #0f1a2e 0%, #0b1220 40%, #0b1220 100%);
+    radial-gradient(120% 60% at 50% -10%, rgba(96, 122, 240, 0.18), transparent 60%),
+    radial-gradient(90% 50% at 100% 0%, rgba(0, 255, 135, 0.07), transparent 55%),
+    linear-gradient(180deg, #171038 0%, #0f0a26 42%, #0d0a1f 100%);
   background-attachment: fixed;
+}
+
+/* Header hero — FPL-inspired: deep purple → indigo, iridescent green/cyan
+   streaks, blending into the navy body at the bottom. */
+.hero-bg {
+  background:
+    /* bright green→cyan iridescent streak, upper-left diagonal */
+    linear-gradient(
+      122deg,
+      transparent 6%,
+      rgba(0, 255, 135, 0.16) 14%,
+      rgba(4, 245, 255, 0.06) 20%,
+      transparent 28%
+    ),
+    /* faint second streak, lower-right */
+    linear-gradient(
+      205deg,
+      transparent 58%,
+      rgba(0, 255, 135, 0.1) 70%,
+      transparent 79%
+    ),
+    /* periwinkle-blue glow, bottom-right */
+    radial-gradient(130% 95% at 100% 55%, rgba(96, 122, 240, 0.38), transparent 55%),
+    /* purple base → indigo → navy so it melts into the body below */
+    linear-gradient(155deg, #37003c 0%, #3a1668 40%, #24215e 66%, #14213f 100%);
 }
 
 /* Sổ đầu bài — accent-driven card bits (--accent set inline per card) */
@@ -63,8 +89,8 @@ body {
   line-height: 1.35;
   padding: 2px 8px;
   border-radius: 999px;
-  color: #8aa0bd;
-  border: 1px dashed #24354f;
+  color: #9a97bd;
+  border: 1px dashed #332a56;
 }
 
 /* thin teal scrollbars for the horizontal-scroll Classic block */

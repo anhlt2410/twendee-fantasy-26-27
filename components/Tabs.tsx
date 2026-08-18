@@ -45,7 +45,7 @@ export default function Tabs({
         <div
           role="tablist"
           aria-label="Chuyển tab"
-          className="flex gap-1 border-t border-[#1e2c4a] bg-[#0e1a32] p-[5px] pb-[max(5px,env(safe-area-inset-bottom))] shadow-lg sm:rounded-2xl sm:border sm:pb-[5px]"
+          className="flex gap-1 border-t border-[#2a2350] bg-[#141030] p-[5px] pb-[max(5px,env(safe-area-inset-bottom))] shadow-lg sm:rounded-2xl sm:border sm:pb-[5px]"
         >
           {TABS.map((t) => {
             const active = tab === t.key;
@@ -58,7 +58,7 @@ export default function Tabs({
                 className={`flex min-h-[40px] min-w-0 flex-1 items-center justify-center gap-1.5 rounded-xl px-1 py-2.5 text-[13px] font-medium transition-all duration-200 sm:gap-2 sm:text-sm ${
                   active
                     ? "bg-gradient-to-br from-[#2ee6a6] to-[#12c6e6] text-[#052a23] shadow-[0_4px_16px_rgba(46,230,166,0.3)]"
-                    : "text-[#8b97ad] hover:text-slate-200"
+                    : "text-[#9a97bd] hover:text-slate-200"
                 }`}
               >
                 <t.Icon size={16} strokeWidth={2.25} className="shrink-0" aria-hidden />

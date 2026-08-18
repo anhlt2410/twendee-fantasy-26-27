@@ -16,22 +16,22 @@ const config: Config = {
     },
     extend: {
       colors: {
-        // Midnight Aqua
+        // Royal Aqua — FPL purple base + cyan-green accents
         sea: {
-          bg: "#0b1220",
-          bg2: "#0f1a2e",
-          surface: "#16233b",
-          surface2: "#1b2a45",
-          border: "#24354f",
+          bg: "#0d0a1f",
+          bg2: "#15112f",
+          surface: "#1b1640",
+          surface2: "#231c4d",
+          border: "#332a56",
           teal: "#2dd4bf",
           emerald: "#34d399",
           amber: "#fbbf24",
           text: "#e8eef7",
-          muted: "#8aa0bd",
+          muted: "#9a97bd",
         },
       },
       backgroundImage: {
-        "sea-header": "linear-gradient(150deg,#0f1a2e 0%,#16233b 60%,#132b3d 100%)",
+        "sea-header": "linear-gradient(150deg,#37003c 0%,#3a1668 60%,#24215e 100%)",
       },
       boxShadow: {
         glow: "0 0 40px -8px rgba(45,212,191,0.35)",
