@@ -1,0 +1,81 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html {
+  background: #0b1220;
+}
+
+body {
+  color: #e8eef7;
+  -webkit-font-smoothing: antialiased;
+  /* seamless dark canvas: teal glow up top, deep navy below */
+  background:
+    radial-gradient(120% 60% at 50% -10%, rgba(45, 212, 191, 0.16), transparent 60%),
+    radial-gradient(90% 50% at 100% 0%, rgba(52, 211, 153, 0.08), transparent 55%),
+    linear-gradient(180deg, #0f1a2e 0%, #0b1220 40%, #0b1220 100%);
+  background-attachment: fixed;
+}
+
+/* Sổ đầu bài — accent-driven card bits (--accent set inline per card) */
+.ach-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: var(--accent);
+}
+.ach-chip {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.35;
+  padding: 2px 8px;
+  border-radius: 999px;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+}
+.ach-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 999px;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+}
+/* not-yet-earned badge: neutral, low-key placeholder */
+.ach-pending::before {
+  opacity: 0.35;
+}
+.ach-wait {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.35;
+  padding: 2px 8px;
+  border-radius: 999px;
+  color: #8aa0bd;
+  border: 1px dashed #24354f;
+}
+
+/* thin teal scrollbars for the horizontal-scroll Classic block */
+.scroll-x {
+  scrollbar-width: thin;
+  scrollbar-color: #2dd4bf transparent;
+}
+.scroll-x::-webkit-scrollbar {
+  height: 6px;
+}
+.scroll-x::-webkit-scrollbar-thumb {
+  background: #2dd4bf;
+  border-radius: 3px;
+}
