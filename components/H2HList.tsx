@@ -1,5 +1,4 @@
-import type { ManagerName } from "@/app/page";
-import type { H2HMatchRow } from "@/lib/types";
+import type { H2HMatchRow, ManagerName } from "@/lib/types";
 import { Empty } from "./OverviewTable";
 
 // H2H — horizontal fixture card: GW badge · home (right-aligned) · score pill ·

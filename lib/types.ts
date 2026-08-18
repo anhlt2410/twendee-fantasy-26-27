@@ -125,3 +125,10 @@ export type ClassicRow = {
   classic_xp: number;
   h2h_xp: number;
 };
+
+// Name lookup (subset of managers) used to render H2H fixtures.
+export type ManagerName = {
+  entry_id: number;
+  player_name: string;
+  entry_name: string;
+};

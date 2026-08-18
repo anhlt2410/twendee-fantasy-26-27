@@ -1,7 +1,6 @@
 // TEMPORARY UI preview — sample H2H data, no Supabase reads/writes.
 // Delete this route once FPL publishes the real H2H schedule.
-import type { ManagerName } from "@/app/page";
-import type { H2HMatchRow } from "@/lib/types";
+import type { H2HMatchRow, ManagerName } from "@/lib/types";
 import H2HList from "@/components/H2HList";
 
 const NAMES: ManagerName[] = [

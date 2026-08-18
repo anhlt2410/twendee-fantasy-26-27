@@ -1,37 +1,21 @@
-import { supabase } from "@/lib/supabase";
-import Tabs from "@/components/Tabs";
+import { getClassic, getFinishedGws, getOverview } from "@/lib/data";
 import { fmt } from "@/components/OverviewTable";
-import { computeAchievements } from "@/lib/achievements";
-import type { ClassicRow, H2HMatchRow, OverviewRow } from "@/lib/types";
+import TabNav from "@/components/TabNav";
+import type { ClassicRow, OverviewRow } from "@/lib/types";
 
 export const revalidate = 300; // ISR: re-read Supabase every 5 min
 
-export type ManagerName = {
-  entry_id: number;
-  player_name: string;
-  entry_name: string;
-};
-
-export default async function Page() {
-  const [overview, classic, h2h, names, meta] = await Promise.all([
-    supabase.from("v_overview").select("*").order("position"),
-    supabase.from("v_classic").select("*"),
-    supabase.from("h2h_matches").select("*"),
-    supabase.from("managers").select("entry_id, player_name, entry_name"),
-    supabase.from("gw_meta").select("event, finished"),
+export default async function TabsLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const [overviewRows, classicRows, finishedGws] = await Promise.all([
+    getOverview(),
+    getClassic(),
+    getFinishedGws(),
   ]);
-
-  const finishedGws = (meta.data ?? [])
-    .filter((r) => r.finished)
-    .map((r) => r.event)
-    .sort((a, b) => a - b);
-
-  const overviewRows = (overview.data ?? []) as OverviewRow[];
-  const classicRows = (classic.data ?? []) as ClassicRow[];
-  const h2hRows = (h2h.data ?? []) as H2HMatchRow[];
   const started = finishedGws.length > 0;
-
-  const achievements = computeAchievements(overviewRows, classicRows, h2hRows);
 
   // Top GW Point — highest single-GW gross score across all managers/rounds
   const topGw = classicRows.reduce<ClassicRow | null>(
@@ -110,14 +94,8 @@ export default async function Page() {
           the mobile bottom-fixed nav stays anchored to the viewport) */}
       <div className="relative -mt-6 rounded-t-3xl border-t border-sea-border bg-sea-bg/80 shadow-[0_-10px_30px_-14px_rgba(0,0,0,0.7)]">
         <div className="mx-auto h-1 w-10 translate-y-2.5 rounded-full bg-sea-border" />
-        <Tabs
-          overview={overviewRows}
-          classic={(classic.data ?? []) as ClassicRow[]}
-          h2h={h2hRows}
-          names={(names.data ?? []) as ManagerName[]}
-          finishedGws={finishedGws}
-          achievements={achievements}
-        />
+        <TabNav />
+        {children}
       </div>
     </main>
   );
