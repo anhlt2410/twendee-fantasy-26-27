@@ -64,7 +64,7 @@ export default async function TabsLayout({
               </span>
             </h1>
             <p className="mt-0.5 truncate text-xs text-sea-muted">
-              Chả được đồng mẹ nào mà năm nào cũng chơi
+              Đường dài mới biết con ngựa nào hài
             </p>
           </div>
         </div>
