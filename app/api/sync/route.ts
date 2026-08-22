@@ -73,7 +73,47 @@ async function sync() {
     if (error) throw new Error(`managers upsert: ${error.message}`);
   }
 
-  // 3. GWs to process = (finished || current) not already finalized in gw_meta
+  // 3. H2H matches (all pages) → store + group by GW. Done BEFORE the
+  // early-return below so the full 38-GW fixture schedule is pulled even
+  // pre-season, when no GW is finished/current yet.
+  const rawMatches = await getH2HMatches(H2H_LEAGUE_ID);
+  const h2hRows: H2HMatchRow[] = rawMatches.map((m) => ({
+    event: m.event,
+    entry_1: m.entry_1_entry ?? 0, // 0 = AVERAGE sentinel (PK cannot be null)
+    entry_1_points: m.entry_1_points,
+    entry_2: m.entry_2_entry ?? 0,
+    entry_2_points: m.entry_2_points,
+    winner: m.winner,
+  }));
+  if (h2hRows.length) {
+    const { error } = await db
+      .from("h2h_matches")
+      .upsert(h2hRows, { onConflict: "event,entry_1,entry_2" });
+    if (error) throw new Error(`h2h upsert: ${error.message}`);
+  }
+  // raw (null-preserving) matches grouped by GW — for h2hXp (AVERAGE = null).
+  // Result is derived from points, so carry both sides' points through.
+  const matchesByGw = new Map<
+    number,
+    {
+      entry1: number | null;
+      entry2: number | null;
+      points1: number;
+      points2: number;
+    }[]
+  >();
+  for (const m of rawMatches) {
+    const arr = matchesByGw.get(m.event) ?? [];
+    arr.push({
+      entry1: m.entry_1_entry,
+      entry2: m.entry_2_entry,
+      points1: m.entry_1_points,
+      points2: m.entry_2_points,
+    });
+    matchesByGw.set(m.event, arr);
+  }
+
+  // 4. GWs to process = (finished || current) not already finalized in gw_meta
   const { data: metaRows, error: metaErr } = await db
     .from("gw_meta")
     .select("event, finished")
@@ -89,10 +129,16 @@ async function sync() {
     .sort((a, b) => a - b);
 
   if (!targetGws.length) {
-    return { processedGws: [], currentGw, note: "nothing to sync" };
+    return {
+      processedGws: [],
+      currentGw,
+      managers: managers.length,
+      h2hMatches: h2hRows.length,
+      note: "no GW to compute; H2H schedule synced",
+    };
   }
 
-  // 4. per-manager history (batched, p-limit 5)
+  // 5. per-manager history (batched, p-limit 5)
   const limit = pLimit(5);
   const histByEntry = new Map<number, Map<number, GwHist>>();
   await Promise.all(
@@ -112,37 +158,6 @@ async function sync() {
       }),
     ),
   );
-
-  // 5. H2H matches (all pages) → store + group by GW
-  const rawMatches = await getH2HMatches(H2H_LEAGUE_ID);
-  const h2hRows: H2HMatchRow[] = rawMatches.map((m) => ({
-    event: m.event,
-    entry_1: m.entry_1_entry ?? 0, // 0 = AVERAGE sentinel (PK cannot be null)
-    entry_1_points: m.entry_1_points,
-    entry_2: m.entry_2_entry ?? 0,
-    entry_2_points: m.entry_2_points,
-    winner: m.winner,
-  }));
-  if (h2hRows.length) {
-    const { error } = await db
-      .from("h2h_matches")
-      .upsert(h2hRows, { onConflict: "event,entry_1,entry_2" });
-    if (error) throw new Error(`h2h upsert: ${error.message}`);
-  }
-  // raw (null-preserving) matches grouped by GW — for h2hXp (AVERAGE = null)
-  const matchesByGw = new Map<
-    number,
-    { entry1: number | null; entry2: number | null; winner: number | null }[]
-  >();
-  for (const m of rawMatches) {
-    const arr = matchesByGw.get(m.event) ?? [];
-    arr.push({
-      entry1: m.entry_1_entry,
-      entry2: m.entry_2_entry,
-      winner: m.winner,
-    });
-    matchesByGw.set(m.event, arr);
-  }
 
   // 6. per GW → compute + upsert gw_scores + penalties
   for (const gw of targetGws) {

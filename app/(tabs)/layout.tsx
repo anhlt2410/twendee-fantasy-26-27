@@ -3,7 +3,7 @@ import { fmt } from "@/components/OverviewTable";
 import TabNav from "@/components/TabNav";
 import type { ClassicRow, OverviewRow } from "@/lib/types";
 
-export const revalidate = 300; // ISR: re-read Supabase every 5 min
+export const revalidate = 120; // ISR: re-read Supabase every 2 min
 
 export default async function TabsLayout({
   children,
@@ -17,9 +17,9 @@ export default async function TabsLayout({
   ]);
   const started = finishedGws.length > 0;
 
-  // Top GW Point — highest single-GW gross score across all managers/rounds
+  // Top GW Point — highest single-GW net score (điểm chuẩn) across all managers/rounds
   const topGw = classicRows.reduce<ClassicRow | null>(
-    (best, r) => (!best || r.gross_points > best.gross_points ? r : best),
+    (best, r) => (!best || r.net_points > best.net_points ? r : best),
     null,
   );
   // Top Bánh mì — most 🥖 (most GW-1 finishes)
@@ -73,7 +73,7 @@ export default async function TabsLayout({
         <div className="relative z-10 mt-5 grid grid-cols-3 gap-2.5">
           <StatCard
             label="Top điểm vòng"
-            value={started && topGw ? String(topGw.gross_points) : dash}
+            value={started && topGw ? String(topGw.net_points) : dash}
             name={started && topGw ? topGw.entry_name : "Chưa bắt đầu"}
             accent
           />

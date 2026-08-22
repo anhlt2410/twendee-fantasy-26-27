@@ -2,15 +2,15 @@ import type { ClassicRow } from "@/lib/types";
 import { Empty, fmt } from "./OverviewTable";
 
 // Classic — 9 cols. Sticky left 2 (Vị trí + Tên); numeric block scrolls X.
-// Vị trí | Tên | tên FPL | điểm vòng đấu | transfer | điểm chuẩn | XP | Classic | H2H
+// Vị trí | Tên | tên FPL | điểm tuần | TF | điểm chuẩn | XPC | XPH | XP
 const NUM_COLS: { key: keyof ClassicRow; label: string; title: string }[] = [
   { key: "entry_name", label: "FPL", title: "tên FPL" },
-  { key: "gross_points", label: "Điểm", title: "điểm vòng đấu" },
+  { key: "gross_points", label: "Điểm", title: "điểm tuần" },
   { key: "transfers", label: "TF", title: "số lần transfer" },
   { key: "net_points", label: "Chuẩn", title: "điểm chuẩn (đã trừ hit)" },
+  { key: "classic_xp", label: "XPC", title: "Classic XP" },
+  { key: "h2h_xp", label: "XPH", title: "H2H XP" },
   { key: "xp", label: "XP", title: "tổng XP phạt" },
-  { key: "classic_xp", label: "CL", title: "Classic XP" },
-  { key: "h2h_xp", label: "H2H", title: "H2H XP" },
 ];
 
 export default function ClassicTable({
@@ -27,7 +27,7 @@ export default function ClassicTable({
 
   return (
     <div className="scroll-x overflow-x-auto rounded-2xl border border-sea-border bg-sea-surface/40">
-      <table className="border-collapse text-sm">
+      <table className="w-full min-w-full border-collapse text-sm">
         <thead className="bg-sea-surface text-sea-muted">
           <tr>
             <th className="sticky left-0 z-20 bg-sea-surface px-2 py-2.5 text-center text-xs font-semibold uppercase">

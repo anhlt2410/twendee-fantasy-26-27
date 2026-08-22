@@ -82,8 +82,8 @@ function Card({ a }: { a: Achievement }) {
         ) : (
           <>
             {shown.map((w) => (
-              <span key={w.entry_id} className="ach-chip" title={w.entry_name}>
-                {w.player_name}
+              <span key={w.entry_id} className="ach-chip" title={w.player_name}>
+                {w.entry_name}
               </span>
             ))}
             {extra > 0 && (

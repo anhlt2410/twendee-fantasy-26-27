@@ -1,7 +1,7 @@
 import { getOverview } from "@/lib/data";
 import OverviewTable from "@/components/OverviewTable";
 
-export const revalidate = 300;
+export const revalidate = 120;
 
 export default async function OverviewPage() {
   const overview = await getOverview();

@@ -36,10 +36,12 @@ export const getNames = cache(
       []) as ManagerName[],
 );
 
+// GWs that have been synced (finished OR currently in progress) — i.e. GWs we
+// actually hold data for. An ongoing GW has a gw_meta row with finished=false
+// but live scores, so it must count as "available" for the Classic/H2H tabs.
 export const getFinishedGws = cache(async () => {
-  const meta = await supabase.from("gw_meta").select("event, finished");
+  const meta = await supabase.from("gw_meta").select("event");
   return (meta.data ?? [])
-    .filter((r) => r.finished)
     .map((r) => r.event as number)
     .sort((a, b) => a - b);
 });

@@ -24,6 +24,7 @@ const config: Config = {
           surface2: "#231c4d",
           border: "#332a56",
           teal: "#2dd4bf",
+          rose: "#fb7185",
           emerald: "#34d399",
           amber: "#fbbf24",
           text: "#e8eef7",

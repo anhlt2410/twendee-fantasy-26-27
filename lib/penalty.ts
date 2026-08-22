@@ -22,9 +22,16 @@ export function classicXp(standings: Standing[], step = 10): Map<number, number>
   return xp;
 }
 
-// H2H XP for one GW. matches: real-manager side(s) only; AVERAGE = null entry.
+// H2H XP for one GW. Result is derived from points (the FPL `winner` field is
+// unreliable / often null even after a GW is played). Loser +10, draw +5 each,
+// winner 0. AVERAGE opponent = null entry → skipped by `add` (no penalty).
 export function h2hXp(
-  matches: { entry1: number | null; entry2: number | null; winner: number | null }[],
+  matches: {
+    entry1: number | null;
+    entry2: number | null;
+    points1: number;
+    points2: number;
+  }[],
   loss = 10,
   draw = 5,
 ): Map<number, number> {
@@ -33,10 +40,15 @@ export function h2hXp(
     if (id != null) xp.set(id, (xp.get(id) ?? 0) + v);
   };
   for (const m of matches) {
-    if (m.winner === null) {
+    if (m.points1 === 0 && m.points2 === 0) continue; // unplayed fixture
+    if (m.points1 === m.points2) {
       add(m.entry1, draw);
       add(m.entry2, draw);
-    } else add(m.winner === m.entry1 ? m.entry2 : m.entry1, loss);
+    } else if (m.points1 > m.points2) {
+      add(m.entry2, loss); // entry2 lost
+    } else {
+      add(m.entry1, loss); // entry1 lost
+    }
   }
   return xp;
 }
