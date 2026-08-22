@@ -6,6 +6,8 @@ import type {
   FplEntryHistory,
   FplH2HMatch,
   FplH2HMatches,
+  FplLive,
+  FplPicks,
   FplStandingRow,
 } from "./types";
 
@@ -59,6 +61,17 @@ export async function getClassicStandings(
 
 export function getEntryHistory(entryId: number): Promise<FplEntryHistory> {
   return fplGet<FplEntryHistory>(`/entry/${entryId}/history/`);
+}
+
+// Live element points for a GW → Map<elementId, total_points>. Used to compute
+// a manager's live gross for an in-progress GW (history lags until finalized).
+export async function getLivePoints(gw: number): Promise<Map<number, number>> {
+  const data = await fplGet<FplLive>(`/event/${gw}/live/`);
+  return new Map(data.elements.map((e) => [e.id, e.stats.total_points]));
+}
+
+export function getEntryPicks(entryId: number, gw: number): Promise<FplPicks> {
+  return fplGet<FplPicks>(`/entry/${entryId}/event/${gw}/picks/`);
 }
 
 // H2H matches — paginated via has_next / ?page=n

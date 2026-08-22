@@ -1,16 +1,15 @@
 import type { ClassicRow } from "@/lib/types";
 import { Empty, fmt } from "./OverviewTable";
 
-// Classic — 9 cols. Sticky left 2 (Vị trí + Tên); numeric block scrolls X.
-// Vị trí | Tên | tên FPL | điểm tuần | TF | điểm chuẩn | XPC | XPH | XP
+// Classic. Sticky left 2 (Vị trí + Tên, tên FPL dưới tên); numeric block scrolls X.
+// # | Tên | Điểm | TF | Điểm chuẩn | XP | XPC | XPH
 const NUM_COLS: { key: keyof ClassicRow; label: string; title: string }[] = [
-  { key: "entry_name", label: "FPL", title: "tên FPL" },
   { key: "gross_points", label: "Điểm", title: "điểm tuần" },
   { key: "transfers", label: "TF", title: "số lần transfer" },
   { key: "net_points", label: "Chuẩn", title: "điểm chuẩn (đã trừ hit)" },
+  { key: "xp", label: "XP", title: "tổng XP phạt" },
   { key: "classic_xp", label: "XPC", title: "Classic XP" },
   { key: "h2h_xp", label: "XPH", title: "H2H XP" },
-  { key: "xp", label: "XP", title: "tổng XP phạt" },
 ];
 
 export default function ClassicTable({
@@ -55,6 +54,9 @@ export default function ClassicTable({
               </td>
               <td className="sticky left-9 z-10 whitespace-nowrap bg-sea-bg2 px-2 py-2.5 font-semibold text-sea-text">
                 {r.player_name}
+                <span className="block truncate text-[11px] font-normal text-sea-muted/70">
+                  {r.entry_name}
+                </span>
               </td>
               {NUM_COLS.map((c) => (
                 <td
@@ -72,17 +74,16 @@ export default function ClassicTable({
   );
 }
 
+// Scrollable cells use a lighter tone so the frozen # + Tên columns read as pinned.
 function cellClass(key: keyof ClassicRow) {
   const base = "whitespace-nowrap px-3 py-2.5 text-right tabular-nums";
-  if (key === "entry_name") return `${base} text-sea-muted`;
-  if (key === "xp") return `${base} font-bold text-sea-amber`;
-  if (key === "net_points") return `${base} font-semibold text-sea-text`;
-  return `${base} text-sea-text/80`;
+  if (key === "xp") return `${base} font-bold text-sea-amber/80`;
+  if (key === "net_points") return `${base} font-semibold text-sea-text/70`;
+  return `${base} text-sea-muted`;
 }
 
 function render(r: ClassicRow, key: keyof ClassicRow) {
   const v = r[key];
-  if (key === "entry_name") return String(v);
   if (key === "xp" || key === "classic_xp" || key === "h2h_xp") {
     return fmt(Number(v));
   }

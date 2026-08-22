@@ -1,6 +1,7 @@
 import { getClassic, getFinishedGws, getOverview } from "@/lib/data";
 import { fmt } from "@/components/OverviewTable";
 import TabNav from "@/components/TabNav";
+import SyncButton from "@/components/SyncButton";
 import type { ClassicRow, OverviewRow } from "@/lib/types";
 
 export const revalidate = 120; // ISR: re-read Supabase every 2 min
@@ -56,7 +57,7 @@ export default async function TabsLayout({
               }}
             />
           </span>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <h1 className="truncate text-lg font-extrabold leading-tight tracking-tight text-sea-text sm:text-xl">
               Cúp Hải Sản Twendee
               <span className="ml-1.5 bg-gradient-to-r from-sea-teal to-sea-emerald bg-clip-text text-transparent">
@@ -67,6 +68,7 @@ export default async function TabsLayout({
               Đường dài mới biết con ngựa nào hài
             </p>
           </div>
+          <SyncButton />
         </div>
 
         {/* hero summary strip — bridges header ↔ data */}

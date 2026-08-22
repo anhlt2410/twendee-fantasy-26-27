@@ -51,6 +51,23 @@ export type FplEntryHistory = {
   current: FplHistoryEntry[];
 };
 
+// Live element points for a GW: /event/{gw}/live/
+export type FplLive = {
+  elements: { id: number; stats: { total_points: number } }[];
+};
+
+// A manager's squad for a GW: /entry/{id}/event/{gw}/picks/
+// entry_history mirrors history.current but also carries the active chip.
+export type FplPicks = {
+  active_chip: string | null;
+  entry_history: {
+    event: number;
+    event_transfers: number;
+    event_transfers_cost: number;
+  };
+  picks: { element: number; position: number; multiplier: number }[];
+};
+
 export type FplH2HMatch = {
   event: number;
   entry_1_entry: number | null;
