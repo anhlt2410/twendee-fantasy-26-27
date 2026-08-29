@@ -73,15 +73,24 @@ create policy r on gw_meta     for select using (true);
 -- Overview tab
 drop view if exists v_overview;
 create view v_overview as
+-- Aggregate penalties and gw_scores in SEPARATE subqueries. Joining both to
+-- managers on entry_id alone produces a cartesian product (one penalty row per
+-- gw_scores row and vice-versa), which multiplies sum(total_xp) and inflates the
+-- bánh mì count once more than one GW exists. Pre-aggregate, then join 1:1.
 select
   m.entry_id, m.player_name, m.entry_name, m.total_points,
   rank() over (order by m.total_points desc) as position,
-  coalesce(sum(p.total_xp), 0) as xp,
-  count(*) filter (where gs.classic_rank = 1) as banh_mi
+  coalesce(px.xp, 0) as xp,
+  coalesce(gx.banh_mi, 0) as banh_mi
 from managers m
-left join penalties p on p.entry_id = m.entry_id
-left join gw_scores gs on gs.entry_id = m.entry_id
-group by m.entry_id;
+left join (
+  select entry_id, sum(total_xp) as xp
+  from penalties group by entry_id
+) px on px.entry_id = m.entry_id
+left join (
+  select entry_id, count(*) filter (where classic_rank = 1) as banh_mi
+  from gw_scores group by entry_id
+) gx on gx.entry_id = m.entry_id;
 
 -- Classic tab (filter by :event in query)
 drop view if exists v_classic;

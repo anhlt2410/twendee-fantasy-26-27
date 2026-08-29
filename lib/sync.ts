@@ -13,15 +13,36 @@ import {
 } from "./fpl";
 import { classicXp, h2hXp, ranks, type Standing } from "./penalty";
 import { supabaseAdmin } from "./supabase";
-import type { GwScoreRow, H2HMatchRow, ManagerRow, PenaltyRow } from "./types";
+import type {
+  FplH2HMatch,
+  GwScoreRow,
+  H2HMatchRow,
+  ManagerRow,
+  PenaltyRow,
+} from "./types";
 
-const CLASSIC_LEAGUE_ID = Number(process.env.CLASSIC_LEAGUE_ID);
-const H2H_LEAGUE_ID = Number(process.env.H2H_LEAGUE_ID);
+// Fixed league IDs for this league (CLAUDE.md §1). Env can override, but fall
+// back to constants so a missing Vercel env var never yields a NaN league id.
+const CLASSIC_LEAGUE_ID = Number(process.env.CLASSIC_LEAGUE_ID) || 79247;
+const H2H_LEAGUE_ID = Number(process.env.H2H_LEAGUE_ID) || 2098031;
+
+// H2H schedule switch. The current league's fixtures start at GW2; GW1 was
+// played in the previous (legacy) H2H league, which two managers never joined.
+// So GW1 fixtures are pulled from the legacy league (+ a synthetic head-to-head
+// between the two absent managers) and GW2+ from the current league.
+const H2H_LEGACY_LEAGUE_ID = Number(process.env.H2H_LEGACY_LEAGUE_ID) || 79400;
+const H2H_SWITCH_GW = 2; // first GW served by the current league
+// Phong Trần (2220046) & Việt Nguyễn (2169983) never joined the GW1 league →
+// pair them against each other for GW1 so they still get an H2H result/penalty.
+const GW1_MISSING_PAIR: [number, number] = [2220046, 2169983];
 
 // per-entry per-GW extracted history
 type GwHist = { gross: number; transfers: number; cost: number; net: number };
 
-export async function runSync() {
+// forceGws: recompute these GWs even if already marked finished in gw_meta
+// (one-off backfills, e.g. injecting the GW1 synthetic H2H match).
+export async function runSync(opts: { forceGws?: number[] } = {}) {
+  const forceGws = new Set(opts.forceGws ?? []);
   const db = supabaseAdmin();
 
   // 1. bootstrap → finished + current GWs
@@ -50,7 +71,32 @@ export async function runSync() {
   // 3. H2H matches (all pages) → store + group by GW. Done BEFORE the
   // early-return below so the full 38-GW fixture schedule is pulled even
   // pre-season, when no GW is finished/current yet.
-  const rawMatches = await getH2HMatches(H2H_LEAGUE_ID);
+  // GW1 from the legacy league, GW2+ from the current league (see H2H_SWITCH_GW).
+  const [currentMatches, legacyMatches] = await Promise.all([
+    getH2HMatches(H2H_LEAGUE_ID),
+    getH2HMatches(H2H_LEGACY_LEAGUE_ID),
+  ]);
+  const rawMatches: FplH2HMatch[] = [
+    ...legacyMatches.filter((m) => m.event < H2H_SWITCH_GW),
+    ...currentMatches.filter((m) => m.event >= H2H_SWITCH_GW),
+  ];
+  // Synthetic GW1 pairing for the two managers absent from the legacy league.
+  // It's kept OUT of the blanket schedule upsert below: real fixtures carry FPL
+  // points (== net) so re-upserting them every sync is harmless, but this match
+  // is fabricated (no API points) — its points/winner come from net and are
+  // written only by the per-GW loop. Re-upserting 0/0 here would clobber that on
+  // any sync after GW1 finalizes. It IS fed to matchesByGw (so the penalty is
+  // computed) and whitelisted in the prune (so it survives).
+  const [pairA, pairB] = GW1_MISSING_PAIR;
+  const syntheticGw1: FplH2HMatch = {
+    event: 1,
+    entry_1_entry: pairA,
+    entry_1_points: 0,
+    entry_2_entry: pairB,
+    entry_2_points: 0,
+    winner: null,
+  };
+
   const h2hRows: H2HMatchRow[] = rawMatches.map((m) => ({
     event: m.event,
     entry_1: m.entry_1_entry ?? 0, // 0 = AVERAGE sentinel (PK cannot be null)
@@ -64,6 +110,29 @@ export async function runSync() {
       .from("h2h_matches")
       .upsert(h2hRows, { onConflict: "event,entry_1,entry_2" });
     if (error) throw new Error(`h2h upsert: ${error.message}`);
+
+    // Prune stale fixtures so the table holds exactly the authoritative
+    // schedule. The H2H league switch (GW2+) left old-league pairings behind
+    // for GW2..38 that the merge above no longer produces; upsert can't remove
+    // them. Delete any stored row whose (event,entry_1,entry_2) isn't current.
+    const validKey = (e: number, a: number | null, b: number | null) =>
+      `${e}:${a ?? 0}:${b ?? 0}`;
+    const valid = new Set(h2hRows.map((r) => validKey(r.event, r.entry_1, r.entry_2)));
+    valid.add(validKey(1, pairA, pairB)); // keep the synthetic GW1 match
+    const { data: existing, error: exErr } = await db
+      .from("h2h_matches")
+      .select("event, entry_1, entry_2");
+    if (exErr) throw new Error(`h2h read for prune: ${exErr.message}`);
+    const stale = (existing ?? []).filter(
+      (r) => !valid.has(validKey(r.event, r.entry_1, r.entry_2)),
+    );
+    if (stale.length) {
+      const orFilter = stale
+        .map((r) => `and(event.eq.${r.event},entry_1.eq.${r.entry_1},entry_2.eq.${r.entry_2})`)
+        .join(",");
+      const { error: delErr } = await db.from("h2h_matches").delete().or(orFilter);
+      if (delErr) throw new Error(`h2h prune: ${delErr.message}`);
+    }
   }
   // raw (null-preserving) matches grouped by GW — for h2hXp (AVERAGE = null).
   // Result is derived from points, so carry both sides' points through.
@@ -76,7 +145,7 @@ export async function runSync() {
       points2: number;
     }[]
   >();
-  for (const m of rawMatches) {
+  for (const m of [...rawMatches, syntheticGw1]) {
     const arr = matchesByGw.get(m.event) ?? [];
     arr.push({
       entry1: m.entry_1_entry,
@@ -94,6 +163,7 @@ export async function runSync() {
     .eq("finished", true);
   if (metaErr) throw new Error(`gw_meta read: ${metaErr.message}`);
   const alreadyFinished = new Set((metaRows ?? []).map((r) => r.event));
+  for (const gw of forceGws) alreadyFinished.delete(gw); // force recompute
 
   const candidates = bootstrap.events
     .filter((e) => e.finished || e.is_current)

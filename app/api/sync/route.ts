@@ -22,7 +22,15 @@ export async function GET(req: Request) {
   }
 
   try {
-    const result = await runSync();
+    // ?force=1,2 → recompute those GWs even if already finalized (backfills).
+    const force = new URL(req.url).searchParams.get("force");
+    const forceGws = force
+      ? force
+          .split(",")
+          .map(Number)
+          .filter((n) => Number.isFinite(n))
+      : undefined;
+    const result = await runSync({ forceGws });
     revalidateTag(FPL_TAG);
     revalidatePath("/", "layout");
     return NextResponse.json({ ok: true, ...result });
