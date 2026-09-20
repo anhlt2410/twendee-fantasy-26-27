@@ -2,7 +2,7 @@ import type { H2HMatchRow, ManagerName } from "@/lib/types";
 import { Empty } from "./OverviewTable";
 
 // H2H — horizontal fixture card: home (right-aligned) · score pill · away
-// (left-aligned). Winner side accented in sea-teal; draw stays neutral.
+// (left-aligned). Winner side accented in green (sea-emerald); draw stays neutral.
 type Info = { player: string; team: string };
 
 export default function H2HList({
@@ -30,9 +30,11 @@ export default function H2HList({
       {matches.map((m, i) => {
         // Not-yet-played GW → show as an upcoming fixture: no score, no winner
         // highlight. Only finished/live GWs (played) carry a result.
-        const draw = played && m.winner === null;
-        const win1 = played && m.winner === m.entry_1;
-        const win2 = played && m.winner === m.entry_2;
+        // Derive result from points: the `winner` column is unreliable (often
+        // null even when there's a clear winner), whereas points are always set.
+        const win1 = played && m.entry_1_points > m.entry_2_points;
+        const win2 = played && m.entry_2_points > m.entry_1_points;
+        const draw = played && !win1 && !win2;
         return (
           <div
             key={`${m.entry_1}-${m.entry_2}-${i}`}
@@ -82,7 +84,7 @@ function Team({
     >
       <span
         className={`truncate text-sm font-bold ${
-          win ? "text-sea-teal" : "text-sea-text"
+          win ? "text-sea-emerald" : "text-sea-text"
         }`}
       >
         {info.player}
@@ -109,7 +111,7 @@ function Score({
     <span
       className={`min-w-[1.25rem] text-center text-base font-extrabold tabular-nums sm:text-lg ${
         win
-          ? "text-sea-teal"
+          ? "text-sea-emerald"
           : draw
             ? "text-sea-text/80"
             : "text-sea-muted"
