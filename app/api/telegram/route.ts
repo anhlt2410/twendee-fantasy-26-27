@@ -12,9 +12,10 @@ import {
   type TgMessage,
   type TgUpdate,
 } from "@/lib/telegram";
-import { deepseekChat, type ChatMsg } from "@/lib/deepseek";
+import { deepseekChat, type ChatMsg, type Tool } from "@/lib/deepseek";
 import { getLeagueDigest } from "@/lib/botContext";
 import { loadHistory, saveTurn } from "@/lib/botMemory";
+import { webSearch } from "@/lib/search";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -35,12 +36,42 @@ XƯNG HÔ:
   🥈 Tên B — 310đ · XP 8
   Ngắn gọn, không liệt kê cả bảng trừ khi được hỏi.
 
-NGUYÊN TẮC DỮ LIỆU:
-- CHỈ dùng số liệu trong phần DỮ LIỆU GIẢI dưới đây. Tuyệt đối không bịa điểm, thứ hạng, danh hiệu. Không có số liệu thì thú nhận "em chưa có data vụ này" (vẫn cà khịa được).
-- Cà khịa xoay quanh thành tích FPL (đội sổ, đói bánh mì, đốt tiền transfer, hòa cả làng...), KHÔNG công kích ngoại hình/gia đình/đời tư hay chuyện nhạy cảm ngoài game.
-- Trả lời ngắn gọn, đúng trọng tâm câu hỏi.
-- Thuật ngữ: 'điểm chuẩn' = net (đã trừ hit), 'gross' = điểm thô, XP = điểm phạt (cao = xấu), 🥖 bánh mì ruốc = số tuần đứng nhất Classic, 'đội sổ'/'bét bảng' = đứng cuối.
+PHẠM VI TRẢ LỜI:
+- Hỏi về SỐ LIỆU GIẢI (BXH, điểm, thứ hạng, danh hiệu của người chơi): CHỈ dùng dữ liệu trong phần DỮ LIỆU GIẢI dưới đây, tuyệt đối không bịa. Không có thì thú nhận "em chưa có data vụ này".
+- Hỏi PHÂN TÍCH TRẬN ĐẤU / CẦU THỦ (kết quả, phong độ, chấn thương, nhận định bóng đá thật): DÙNG web_search để lấy thông tin cập nhật, đưa thông tin CHÍNH XÁC rồi kèm nhận định vui vẻ, cà khịa.
+- Hỏi chuyện NGOÀI bóng đá: cứ trả lời bình thường theo hiểu biết; nếu cần thông tin mới/không chắc thì web_search rồi trả lời.
+- Khi đã search, dựa vào kết quả thật, không chém.
+- KHI KHÔNG TRẢ LỜI ĐƯỢC (không có data, search không ra, ngoài hiểu biết): đừng bịa. Trả lời theo tinh thần "cái này em chưa có kiến thức, để em hỏi lại sếp Tú Anh rồi trả lời anh ạ" — nhưng mỗi lần diễn đạt một kiểu khác nhau, dí dỏm, tự nhiên, TUYỆT ĐỐI không lặp lại nguyên văn câu mẫu.
+
+GIỌNG & GIỚI HẠN:
+- Cà khịa xoay quanh thành tích FPL/bóng đá (đội sổ, đói bánh mì, đốt tiền transfer, hòa cả làng...), KHÔNG công kích ngoại hình/gia đình/đời tư hay chuyện nhạy cảm ngoài game.
+- Trả lời ngắn gọn, đúng trọng tâm.
+- Thuật ngữ giải: 'điểm chuẩn' = net (đã trừ hit), 'gross' = điểm thô, XP = điểm phạt (cao = xấu), 🥖 bánh mì ruốc = số tuần đứng nhất Classic, 'đội sổ'/'bét bảng' = đứng cuối.
 - Tin nhắn người dùng có dạng "[Tên]: nội dung" — cứ gọi thẳng tên họ ra mà cà.`;
+
+// Single tool: live web search (match/player analysis, news, off-topic facts).
+const TOOLS: Tool[] = [
+  {
+    type: "function",
+    function: {
+      name: "web_search",
+      description:
+        "Tìm thông tin cập nhật trên internet: kết quả/diễn biến trận đấu, phong độ - chấn thương - chuyển nhượng cầu thủ, tin tức bóng đá, hoặc bất kỳ câu hỏi ngoài dữ liệu giải cần thông tin mới/chính xác.",
+      parameters: {
+        type: "object",
+        properties: {
+          query: { type: "string", description: "Truy vấn tìm kiếm (tiếng Anh cho kết quả tốt hơn)" },
+        },
+        required: ["query"],
+      },
+    },
+  },
+];
+
+async function onTool(name: string, args: Record<string, unknown>): Promise<string> {
+  if (name === "web_search") return webSearch(String(args.query ?? ""));
+  return `Không có tool tên ${name}.`;
+}
 
 // Telegram messages are sent as plain text (no parse_mode), so markdown markers
 // would show up literally. Strip them so the bot never prints raw **/__/#/`.
@@ -73,13 +104,17 @@ async function handle(msg: TgMessage) {
     ];
 
     const reply =
-      toTelegramText(await deepseekChat(messages)) ||
-      "Ơ em lú rồi, hỏi lại phát nữa đi 🤡";
+      toTelegramText(await deepseekChat(messages, { tools: TOOLS, onTool })) ||
+      "Cái này em bí rồi, để em hỏi lại sếp Tú Anh rồi báo anh sau nhé 🤝";
     await sendMessage(chatId, reply, msg.message_id);
     await saveTurn(chatId, userName, question, reply);
   } catch (e) {
     console.error("[telegram] handle failed:", e);
-    await sendMessage(chatId, "Server lag vl, lát hỏi lại nhé 😤", msg.message_id);
+    await sendMessage(
+      chatId,
+      "Server đơ mất rồi, để em hỏi lại sếp Tú Anh xem sao, anh hỏi lại sau nhé 😤",
+      msg.message_id,
+    );
   }
 }
 
