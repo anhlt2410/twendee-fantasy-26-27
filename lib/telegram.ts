@@ -56,20 +56,38 @@ export type TgMessage = {
   from?: { first_name?: string; username?: string };
   entities?: Entity[];
   reply_to_message?: { from?: { username?: string } };
+  // Present when the user manually quoted a snippet while replying.
+  quote?: { text?: string };
+  // Present when the message is forwarded from elsewhere.
+  forward_origin?: unknown;
+  forward_date?: number;
 };
 export type TgUpdate = { update_id: number; message?: TgMessage };
 
 // Should the bot answer this message?
 //  - Private chat (DM): always — there's no one else to tag.
-//  - Group/supergroup: only when addressed — an @BotUsername mention (plain
-//    mention, /cmd@BotUsername, or text_mention) or a reply to the bot.
+//  - Group/supergroup: only when DIRECTLY addressed —
+//      (a) a PLAIN reply to one of the bot's messages (no quoted snippet), or
+//      (b) an @BotUsername tag the user typed themselves.
+//    Ignored: forwarded messages, replies that quote a snippet, and quotes of
+//    someone else's message — even if the bot's name appears inside them. Quoted
+//    text lives in `quote`, not `text`, and forwarded text is guarded out, so a
+//    @mention only counts when it's in the user's own typed `text`.
 export function isAddressedToBot(msg: TgMessage): boolean {
   if (msg.chat.type === "private") return true;
 
+  // Forwarded content → never auto-answer (its text/mentions aren't the sender's).
+  if (msg.forward_origin || msg.forward_date) return false;
+
   const uname = (process.env.TELEGRAM_BOT_USERNAME ?? "").replace(/^@/, "").toLowerCase();
   if (!uname) return false;
-  if (msg.reply_to_message?.from?.username?.toLowerCase() === uname) return true;
 
+  // (a) plain reply to the bot — but NOT a reply that quotes a snippet.
+  if (!msg.quote && msg.reply_to_message?.from?.username?.toLowerCase() === uname) {
+    return true;
+  }
+
+  // (b) @tag the user typed in their own text (quoted text is in `quote`, not here).
   const text = (msg.text ?? "").toLowerCase();
   if (text.includes(`@${uname}`)) return true; // covers mention + /cmd@bot
   return false;
