@@ -106,6 +106,21 @@ from gw_scores gs
 join managers m on m.entry_id = gs.entry_id
 left join penalties p on p.entry_id = gs.entry_id and p.event = gs.event;
 
+-- ─────────────────────────── telegram bot ───────────────────────────
+-- Per-group chat memory for the Telegram bot. Scoped by chat_id so every group
+-- keeps its own conversation session. Written only by the webhook (service_role,
+-- which bypasses RLS); RLS is on with no policy → anon has no access at all.
+create table if not exists bot_memory (
+  id bigserial primary key,
+  chat_id bigint not null,
+  role text not null check (role in ('user','assistant')),
+  user_name text,                 -- who spoke (telegram display name)
+  content text not null,
+  created_at timestamptz default now()
+);
+create index if not exists bot_memory_chat_idx on bot_memory (chat_id, created_at desc);
+alter table bot_memory enable row level security;
+
 -- ─────────────────────────────── seed ───────────────────────────────
 insert into leagues (id, h2h_id, name)
 values (79247, 79400, 'FPL League')
