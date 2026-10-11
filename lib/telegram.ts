@@ -52,26 +52,26 @@ type Entity = { type: string; offset: number; length: number };
 export type TgMessage = {
   message_id: number;
   text?: string;
-  chat: { id: number };
+  chat: { id: number; type?: string };
   from?: { first_name?: string; username?: string };
   entities?: Entity[];
   reply_to_message?: { from?: { username?: string } };
 };
 export type TgUpdate = { update_id: number; message?: TgMessage };
 
-// Did this message address the bot? Either an @BotUsername mention, or a reply
-// to one of the bot's own messages. Bot only answers when so.
+// Should the bot answer this message?
+//  - Private chat (DM): always — there's no one else to tag.
+//  - Group/supergroup: only when addressed — an @BotUsername mention (plain
+//    mention, /cmd@BotUsername, or text_mention) or a reply to the bot.
 export function isAddressedToBot(msg: TgMessage): boolean {
+  if (msg.chat.type === "private") return true;
+
   const uname = (process.env.TELEGRAM_BOT_USERNAME ?? "").replace(/^@/, "").toLowerCase();
   if (!uname) return false;
   if (msg.reply_to_message?.from?.username?.toLowerCase() === uname) return true;
-  const text = msg.text ?? "";
-  for (const e of msg.entities ?? []) {
-    if (e.type === "mention") {
-      const m = text.slice(e.offset, e.offset + e.length).replace(/^@/, "").toLowerCase();
-      if (m === uname) return true;
-    }
-  }
+
+  const text = (msg.text ?? "").toLowerCase();
+  if (text.includes(`@${uname}`)) return true; // covers mention + /cmd@bot
   return false;
 }
 
