@@ -14,7 +14,7 @@ import {
 } from "@/lib/telegram";
 import { deepseekChat, type ChatMsg, type Tool } from "@/lib/deepseek";
 import { getLeagueDigest } from "@/lib/botContext";
-import { loadHistory, saveTurn } from "@/lib/botMemory";
+// import { loadHistory, saveTurn } from "@/lib/botMemory"; // memory tạm ngắt
 import { webSearch } from "@/lib/search";
 
 export const dynamic = "force-dynamic";
@@ -92,14 +92,13 @@ async function handle(msg: TgMessage) {
 
   try {
     await sendChatAction(chatId, "typing");
-    const [digest, history] = await Promise.all([
-      getLeagueDigest(),
-      loadHistory(chatId),
-    ]);
+    // Memory tạm NGẮT (hạ tầng giữ nguyên: bảng bot_memory + lib/botMemory.ts).
+    // Bật lại: thêm `loadHistory(chatId)` vào Promise.all, chèn `...history` vào
+    // messages, và gọi lại `saveTurn(...)` phía dưới.
+    const [digest] = await Promise.all([getLeagueDigest()]);
 
     const messages: ChatMsg[] = [
       { role: "system", content: `${PERSONA}\n\n# DỮ LIỆU GIẢI\n${digest}` },
-      ...history,
       { role: "user", content: `[${userName}]: ${question}` },
     ];
 
@@ -107,7 +106,7 @@ async function handle(msg: TgMessage) {
       toTelegramText(await deepseekChat(messages, { tools: TOOLS, onTool })) ||
       "Cái này em bí rồi, để em hỏi lại sếp Tú Anh rồi báo anh sau nhé 🤝";
     await sendMessage(chatId, reply, msg.message_id);
-    await saveTurn(chatId, userName, question, reply);
+    // await saveTurn(chatId, userName, question, reply); // memory tạm ngắt
   } catch (e) {
     console.error("[telegram] handle failed:", e);
     await sendMessage(
